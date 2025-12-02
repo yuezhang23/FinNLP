@@ -1,4 +1,5 @@
 import warnings
+import re
 warnings.filterwarnings("ignore")
 
 from sklearn.metrics import accuracy_score,f1_score
@@ -26,12 +27,31 @@ def format_example(example: dict) -> dict:
     return {"context": context, "target": target}
 
 def change_target(x):
-    if 'positive' in x or 'Positive' in x:
+    if 'strong positive' in x or 'Strong Positive' in x or 'moderately positive' in x or 'Moderately Positive' in x:
         return 'positive'
-    elif 'negative' in x or 'Negative' in x:
+    elif 'strong negative' in x or 'Strong Negative' in x or 'moderately negative' in x or 'Moderately Negative' in x:
         return 'negative'
     else:
         return 'neutral'
+
+def extract_sentiment_first_sentence(output):
+    """Extract sentiment from pattern: 'sentiment is/would be X'"""
+    
+    # Get first sentence
+    first_sentence = output.split('.')[0].lower()
+    
+    # Pattern matching for common phrasings
+    patterns = [
+        r'categorized as (.+?)$',
+        r'sentiment (?:is|would be) (.+?)$',
+        r'considered (.+?)$',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, first_sentence)
+        if match:
+            return match.group(1).strip() 
+    return None
 
 def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
     dataset = datasets.load_dataset('oliverwang15/news_with_gpt_instructions')
@@ -39,7 +59,8 @@ def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
     dataset['output'] = dataset['label'].apply(lambda x:dic[x])
 
     if prompt_fun is None:
-        dataset["instruction"] = "What is the sentiment of this news? Please choose an answer from {negative/neutral/positive}."
+        # dataset["instruction"] = "What is the sentiment of this news? Please choose an answer from {negative/neutral/positive}."
+        dataset["instruction"] = "What is the sentiment of this news? Please choose an answer from {strong negative/moderately negative/mildly negative/neutral/mildly positive/moderately positive/strong positive}, then provide some short reasons."
     else:
         dataset["instruction"] = dataset.apply(prompt_fun, axis = 1)
     dataset["input"] = dataset["news"]
@@ -70,6 +91,8 @@ def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
         torch.cuda.empty_cache()
 
     dataset["out_text"] = out_text_list
+    dataset["out_text"] = dataset["out_text"].apply(extract_sentiment_first_sentence)
+    
     dataset["new_target"] = dataset["target"].apply(change_target)
     dataset["new_out"] = dataset["out_text"].apply(change_target)
 
