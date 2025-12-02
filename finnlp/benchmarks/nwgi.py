@@ -55,6 +55,7 @@ def extract_sentiment_first_sentence(output):
 
 def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
     dataset = datasets.load_dataset('oliverwang15/news_with_gpt_instructions')
+    dataset = dataset.sample(2, random_state=42)
     dataset = dataset['test'].to_pandas()
     dataset['output'] = dataset['label'].apply(lambda x:dic[x])
 
@@ -89,7 +90,6 @@ def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
         out_text = [o.split("Answer: ")[1] for o in res_sentences]
         out_text_list += out_text
         torch.cuda.empty_cache()
-        break
 
     dataset["out_text"] = out_text_list
     dataset["out_text"] = dataset["out_text"].apply(extract_sentiment_first_sentence)
