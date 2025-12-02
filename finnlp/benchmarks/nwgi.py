@@ -89,9 +89,11 @@ def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
         out_text = [o.split("Answer: ")[1] for o in res_sentences]
         out_text_list += out_text
         torch.cuda.empty_cache()
+        break
 
     dataset["out_text"] = out_text_list
     dataset["out_text"] = dataset["out_text"].apply(extract_sentiment_first_sentence)
+    print(f"extracted sentiment: {dataset["out_text"]}")
     
     dataset["new_target"] = dataset["target"].apply(change_target)
     dataset["new_out"] = dataset["out_text"].apply(change_target)
