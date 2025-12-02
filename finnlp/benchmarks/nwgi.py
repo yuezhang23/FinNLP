@@ -55,8 +55,8 @@ def extract_sentiment_first_sentence(output):
 
 def test_nwgi(model, tokenizer, batch_size = 8, prompt_fun = None ):
     dataset = datasets.load_dataset('oliverwang15/news_with_gpt_instructions')
-    dataset = dataset.sample(2, random_state=42)
-    dataset = dataset['test'].to_pandas()
+    dataset = dataset['test'].shuffle(seed=42).select(range(2)).to_pandas()
+    # dataset = dataset['test'].to_pandas()
     dataset['output'] = dataset['label'].apply(lambda x:dic[x])
 
     if prompt_fun is None:
